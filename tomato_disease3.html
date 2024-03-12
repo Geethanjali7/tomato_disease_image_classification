@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Tomato Disease Classification</title>
+    <style>
+            .container {
+                max-width: 500px;
+                margin: 50px auto;
+                padding: 20px;
+                background-color: #fff;
+                border-radius: 5px;
+                box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            }
+
+                    
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>Tomato Disease Classification</h1>
+    <form action="/predict" method="post" enctype="multipart/form-data">
+        <input type="file" name="file">
+
+        <input type="submit" value="Upload">
+
+        <center><h2>{{ prediction_text }}</h2></center>
+    </form>
+
+</div>
+
+</body>
+</html>
