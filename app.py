@@ -1,57 +1,81 @@
-from flask import Flask, render_template, request
-from werkzeug.utils import secure_filename
-import os
+import streamlit as st
+import numpy as np
 from tensorflow.keras.models import load_model
 from tensorflow.keras.preprocessing import image
-import numpy as np
+from PIL import Image
 
-application = Flask(__name__)
-model = load_model('tomato_disease_classifier.h5')
-img_width, img_height = 150, 150
-batch_size = 32
+@st.cache_resource
+def load_model_file():
+    model = load_model("tomato_disease_classifier.h5")
+    return model
 
-def preprocess_image(img_path):
-    img = image.load_img(img_path, target_size=(img_width, img_height))
-    img_array = image.img_to_array(img)
+model = load_model_file()
+
+class_names = [
+    "Bacterial Spot",
+    "Early Blight",
+    "Late Blight",
+    "Leaf Mold",
+    "Septoria Leaf Spot",
+    "Spider Mites",
+    "Target Spot",
+    "Yellow Leaf Curl Virus",
+    "Mosaic Virus",
+    "Healthy"
+]
+
+st.set_page_config(page_title="Tomato Disease Classifier", layout="centered")
+
+st.title("🍅 Tomato Disease Classification")
+st.markdown("### Upload a tomato leaf image to detect disease")
+
+st.write("This model uses Deep Learning (CNN) to classify plant diseases.")
+
+uploaded_file = st.file_uploader("📤 Upload Image", type=["jpg", "png", "jpeg"])
+
+if uploaded_file is not None:
+    # Show image
+    img = Image.open(uploaded_file)
+    st.image(img, caption="Uploaded Image", use_container_width=True)
+
+    img_resized = img.resize((150, 150))
+    img_array = image.img_to_array(img_resized) / 255.0
     img_array = np.expand_dims(img_array, axis=0)
-    img_array /= 255.0
-    return img_array
 
-def predict_class(image_path):
-    img_array = preprocess_image(image_path)
     prediction = model.predict(img_array)
-    prediction_class_index = np.argmax(prediction) + 1  # Adjust index to start from 1
-    class_names = ['Tomato___Bacterial_spot', 'Tomato___Early_blight', 'Tomato___Late_blight',
-                   'Tomato___Leaf_Mold', 'Tomato___Septoria_leaf_spot', 'Tomato___Spider_mites Two-spotted_spider_mite',
-                   'Tomato___Target_Spot', 'Tomato___Tomato_Yellow_Leaf_Curl_Virus', 'Tomato___Tomato_mosaic_virus',
-                   'Tomato___healthy']
-    output = class_names[prediction_class_index - 1]  # Adjust index back to start from 0
-    return output
+    probs = prediction[0]
 
-@application.route('/')
-def home():
-    return render_template('tomato_disease3.html')
+    predicted_index = np.argmax(probs)
+    predicted_class = class_names[predicted_index]
+    confidence = probs[predicted_index]
 
-@application.route('/predict', methods=['POST'])
-def predict():
-    if 'file' not in request.files:
-        return render_template('tomato_disease3.html', prediction_text="No file uploaded!")
+    st.subheader("🔍 Prediction Result")
+    st.success(f"Prediction: {predicted_class}")
+    st.write(f"Confidence: {confidence:.2f}")
 
-    file = request.files['file']
-    if file.filename == '':
-        return render_template('tomato_disease3.html', prediction_text='No file selected!')
+    st.subheader("📊 Top 3 Predictions")
 
-    if not os.path.exists('uploads'):
-        os.makedirs('uploads')
+    top3_idx = np.argsort(probs)[-3:][::-1]
 
-    filename = secure_filename(file.filename)
-    file_path = os.path.join('uploads', filename)
-    file.save(file_path)
+    for i in top3_idx:
+        st.write(f"{class_names[i]}: {probs[i]:.2f}")
 
-    prediction = predict_class(file_path)
+    st.subheader("💡 Recommendation")
 
-    return render_template('tomato_disease3.html', prediction_text='Predicted class: {}'.format(prediction))
+    if predicted_class == "Healthy":
+        st.success("✅ Your plant looks healthy. Keep maintaining good care!")
+    else:
+        st.warning("⚠️ Disease detected. Consider proper treatment and monitoring.")
 
-if __name__ == '__main__':
-    application.run(debug=True)
 
+st.markdown("---")
+
+st.subheader("📘 About the Model")
+st.write("This model is trained using a Convolutional Neural Network (CNN) on tomato leaf images.")
+st.write("It classifies images into multiple disease categories.")
+
+st.info("⚠️ This tool is for educational purposes only and not a substitute for expert agricultural advice.")
+
+
+st.markdown("---")
+st.write("Built using Deep Learning + Streamlit 🚀")
