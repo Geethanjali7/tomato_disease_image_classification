@@ -42,7 +42,7 @@ if uploaded_file is not None:
     img_array = image.img_to_array(img_resized) / 255.0
     img_array = np.expand_dims(img_array, axis=0)
 
-    prediction = model.predict(img_array)
+    prediction = model.predict(img_array, verbose=0)
     probs = prediction[0]
 
     predicted_index = np.argmax(probs)
